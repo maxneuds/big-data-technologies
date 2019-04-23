@@ -1,2 +1,5 @@
-# big-data-technologies
-Big Data Technologies
+# Big Data Technologies
+Master Data Science  
+Hochschule Darmstadt  
+2019
+
