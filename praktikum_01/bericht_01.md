@@ -92,3 +92,23 @@ insert into public.bdt_user values (generate_series(1,100000));
 ```
 
 #### MongoDB
+
+Da MongoDB weniger Strukturvorbereitung verlangt fällt der Import einfacher aus:
+
+```bash
+mongoimport \
+-u prak21 -p prak21 \
+--db prak21 \
+--collection movies \
+--file /mnt/datasets/Movielens/JSON/movies_1m.json
+```
+
+#### Couchbase
+
+```bash
+/opt/couchbase/bin/cbdocloader \
+-u prak21 -p prak21 \
+-b prak21 \
+-n 127.0.0.1:8091 -v -m 100 \
+/mnt/datasets/Movielens/couchbase/movies_1m.zip
+```
