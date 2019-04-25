@@ -22,7 +22,7 @@ Fast direkte Übertragung des UML in das relationale Modell. Wichtig sind die Re
 
 ![UML Modell](res/nosql.png)
 
-Hier hatten wir bei der Übertragung des UML die Entscheidung zu treffe_NOSQL Bild hier_n, ob wir die Ratings an das `User` oder an der `Movie` Dokument anhängen. Wir haben uns dazu entschieden die Ratings in das `Movie` Dokument zu integrieren, da es intuitiv wahrscheinlicher ist, dass man zur Informationsgewinnung `Movie` iteriert. Dies hat zur Folge, dass das `User` Dokument sehr simpel ist.
+Hier hatten wir bei der Übertragung des UML die Entscheidung zu treffen, ob wir die Ratings an das `User` oder an der `Movie` Dokument anhängen. Wir haben uns dazu entschieden die Ratings in das `Movie` Dokument zu integrieren, da es für Praktikum 2 notwendig ist, dass man zur Informationsgewinnung `Movie` iteriert. Dies hat zur Folge, dass das `User` Dokument sehr simpel ist.
 
 ## Aufgabe 2
 
@@ -37,7 +37,7 @@ Zuerst haben wir festgestellt, dass `::` als Trennzeichen für die Spalten und `
 Die Datei `ratings.dat` enthält die Bewertungen mit den gleichen Trennzeichen.
 
 ```bash
-UserID;MovieID;Rating
+UserID::MovieID::Rating
 ```
 
 Ein Unterschied zu der geplanten Modellierung ist, dass zusätzlich noch eine Spalte `Timestamp` existiert. Diese sollte dann noch für den Import in der SQL Datenbank erstellt werden.
