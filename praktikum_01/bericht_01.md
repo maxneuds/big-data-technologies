@@ -6,21 +6,21 @@ Gruppe 21: Maximilian Neudert, Kai Pehns
 
 ## Aufgabe 1
 
-#### UML
+### UML
 
-![UML Modell](res/uml.png)
+![image](res/uml.png)
 
 Die Angaben wurden übernommen, wie gestellt. Es waren keine besonderen Anpassungen nötig.
 
-#### SQL
+### Relational
 
-![UML Modell](res/sql.png)
+![image](res/sql.png)
 
 Fast direkte Übertragung des UML in das relationale Modell. Wichtig sind die Referenzen mit den Foreign Keys. Wir haben zur Modellierung die Entscheidung getroffen für die `Movie` Tabelle `Title` und `Year` in zwei Spalten zu trennen. Einfacherheitshalber wird aber erst eine `MovieYear` Spalte erstellt, damit der Datenimport einfacher ist und anschließend geteilt.
 
-#### NoSQL
+### NoSQL
 
-![UML Modell](res/nosql.png)
+![image](res/nosql.png)
 
 Hier hatten wir bei der Übertragung des UML die Entscheidung zu treffen, ob wir die Ratings an das `User` oder an der `Movie` Dokument anhängen. Wir haben uns dazu entschieden die Ratings in das `Movie` Dokument zu integrieren, da es für Praktikum 2 notwendig ist, dass man zur Informationsgewinnung `Movie` iteriert. Dies hat zur Folge, dass das `User` Dokument sehr simpel ist.
 
@@ -44,7 +44,7 @@ Ein Unterschied zu der geplanten Modellierung ist, dass zusätzlich noch eine Sp
 
 ## Aufgabe 3
 
-#### PostgreSQL
+### PostgreSQL
 
 Wir sichten zuerst die Daten auf dem Server, diese liegen in einer nochmal anderen Form vor als die originalen Datensätze, was den Import aber einfacher macht.
 Wir erstellen das Modell, indem wir folgende Query ausführen:
@@ -91,7 +91,7 @@ insert into public.bdt_user values (generate_series(1,100000));
 \copy public.bdt_rating FROM '/pgpool/movielens/adjusted/1m/ratings.dat' with (format csv, delimiter ';');
 ```
 
-#### MongoDB
+### MongoDB
 
 Da MongoDB weniger Strukturvorbereitung verlangt fällt der Import einfacher aus:
 
@@ -103,7 +103,7 @@ mongoimport \
 --file /mnt/datasets/Movielens/JSON/movies_1m.json
 ```
 
-#### Couchbase
+### Couchbase
 
 ```bash
 /opt/couchbase/bin/cbdocloader \
