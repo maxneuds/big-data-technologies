@@ -1,0 +1,24 @@
+Erwartete Ergebnisse:
+ACHTUNG: Geben Sie immer die Daten aus, die in der Aufgabe gefordert sind!
+Die Anzahl dient nur zum Check - das ist nicht die gewünschte Ausgabe
+
+1 Ausgabe Filmdaten - insgesamt 3883 Movies 
+
+2 countRatings: 1000209
+
+3 Ausgabe Filmtitel -> Ergebnis movieName: "American Beauty" ratingsCount: 3428
+
+4 Ausgabe Titel und durchschnittliche Bewertung -> insgesamt 430 movies
+
+5 movieName: "Seven Samurai" ratingsCount: 628 avgRating: 4,56
+
+6 genreName: "Action" -> genreCount: 503
+
+7 userId: 10 countRatings: 401
+
+8 userId: 4169 countRatings: 2314
+
+
+
+
+

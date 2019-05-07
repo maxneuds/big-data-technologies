@@ -82,7 +82,7 @@ CREATE TABLE public.bdt_genre (
 Anschließend erstellen wir ausreichend viele User und importieren wir die Daten mittels `\copy` (wegen user rights get der `copy` Befehl nicht):
 
 ```sql
-insert into public.bdt_user values (generate_series(1,100000));
+insert into public.bdt_user values (generate_series(1,1000000));
 
 \copy public.bdt_movie FROM '/pgpool/movielens/adjusted/1m/movies.dat' with (format csv, delimiter ';');
 
