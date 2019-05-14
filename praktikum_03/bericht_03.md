@@ -57,7 +57,7 @@ Zuerst loggen wir uns in [silverhill-web](http://silverhill.fbi.h-da.de:8091/ui/
 couchbase-cli bucket-flush -c localhost:8091 -u prak21 -p prak21 --bucket=prak21
 ```
 
-Danach loggen wir uns in [faircastle](faircastle.fbi.h-da.de) ein und importieren den `20m` Datensatz.
+Danach loggen wir uns in [silverhill](silverhill.fbi.h-da.de) ein und importieren den `20m` Datensatz.
 
 ```bash
 cbdocloader \
