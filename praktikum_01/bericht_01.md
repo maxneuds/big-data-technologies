@@ -82,13 +82,13 @@ CREATE TABLE public.bdt_genre (
 Anschließend erstellen wir ausreichend viele User und importieren wir die Daten mittels `\copy` (wegen user rights get der `copy` Befehl nicht):
 
 ```sql
-insert into public.bdt_user values (generate_series(1,1000000));
+insert into public.users values (generate_series(1,1000000));
 
-\copy public.bdt_movie FROM '/pgpool/movielens/adjusted/1m/movies.dat' with (format csv, delimiter ';');
+\copy public.movies FROM '/pgpool/movielens/adjusted/1m/movies.dat' with (format csv, delimiter ';');
 
-\copy public.bdt_genre FROM '/pgpool/movielens/adjusted/1m/genres.dat' with (format csv, delimiter ';');
+\copy public.genres FROM '/pgpool/movielens/adjusted/1m/genres.dat' with (format csv, delimiter ';');
 
-\copy public.bdt_rating FROM '/pgpool/movielens/adjusted/1m/ratings.dat' with (format csv, delimiter ';');
+\copy public.ratings FROM '/pgpool/movielens/adjusted/1m/ratings.dat' with (format csv, delimiter ';');
 ```
 
 ### MongoDB

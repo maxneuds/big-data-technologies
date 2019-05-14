@@ -9,13 +9,13 @@ Gruppe 21: Maximilian Neudert, Kai Pehns
 ### Postgres
 
 ```sql
-insert into public.bdt_user values (generate_series(1,1000000));
+insert into public.user values (generate_series(1,1000000));
 
-\copy public.bdt_movie FROM '/pgpool/movielens/adjusted/1m/movies.dat' with (format csv, delimiter ';');
+\copy public.movie FROM '/pgpool/movielens/adjusted/1m/movies.dat' with (format csv, delimiter ';');
 
-\copy public.bdt_genre FROM '/pgpool/movielens/adjusted/1m/genres.dat' with (format csv, delimiter ';');
+\copy public.genre FROM '/pgpool/movielens/adjusted/1m/genres.dat' with (format csv, delimiter ';');
 
-\copy public.bdt_rating FROM '/pgpool/movielens/adjusted/1m/ratings.dat' with (format csv, delimiter ';');
+\copy public.rating FROM '/pgpool/movielens/adjusted/1m/ratings.dat' with (format csv, delimiter ';');
 ```
 
 ### MongoDB
@@ -45,6 +45,114 @@ mongoimport \
 Ergebnis ist ein Auszug aus dem Output, wahlweise der `count`, wenn man die query um `count` erweitert.
 
 ### Postgres
+
+1. Ergebnis: `3883 rows affected.`
+
+```sql
+select * from movies
+left join(
+  select mid, string_agg(genre, ',') as "genres"
+  from genres group by mid
+) genres
+using (mid)
+left join(
+  select mid, array_agg((uid, ratings.rating)) as "ratings"
+  from ratings group by mid
+) ratings
+using (mid);
+```
+
+2. Ergebnis: `1000209`
+
+```sql
+select count(*) from ratings;
+```
+
+3. Ergebnis: `"American Beauty (1999)"`
+
+```sql
+select titleyear
+from movies
+join (
+  select mid
+  from ratings
+  group by mid
+  order by count(rating) desc limit 1
+) q
+using (mid);
+```
+
+<div style="page-break-after: always;"></div>
+
+4. Ergebnis: `"430 rows affected"`
+
+```sql
+select titleyear, rating_avg
+from movies
+join (
+  select mid, round(avg(rating), 2) as rating_avg
+  from ratings
+  group by mid
+) subq
+using (mid)
+where rating_avg >= 4
+order by rating_avg desc;
+```
+
+5. Ergebnis: `"Seven Samurai (The Magnificent Seven) (Shichinin no samurai) (1954)"`
+
+```sql
+select titleyear
+from movies
+join (
+  select mid, round(avg(rating), 2) as rating_avg
+  from ratings
+  group by mid
+  having count(rating) >= 100
+) subq
+using (mid)
+where rating_avg >= 4
+order by rating_avg desc
+limit 1;
+```
+
+6. Ergebnis: `"503 rows affected"`
+
+```sql
+select titleyear
+from movies
+join (
+  select mid, genre
+  from genres
+  where genre like 'Action'
+) subq
+using (mid)
+```
+
+<div style="page-break-after: always;"></div>
+
+7. Ergebnis: `"Meet the Parents (2000)"`
+
+```sql
+select titleyear
+from movies
+join (
+  select *
+  from ratings
+  where uid = 10
+) subq
+using (mid)
+```
+
+8. Ergebnis: `4169`
+
+```sql
+select uid
+from ratings
+group by uid
+order by count(rating) desc
+limit 1;
+```
 
 <div style="page-break-after: always;"></div>
 
@@ -97,6 +205,8 @@ db.movies.aggregate([
 ]);
 ```
 
+<div style="page-break-after: always;"></div>
+
 4. Ergebnis: `{ "count" : 430 }`
 
 ```javascript
@@ -119,6 +229,8 @@ db.movies.aggregate([
   }
 ]);
 ```
+
+<div style="page-break-after: always;"></div>
 
 5. Ergebnis: `{ "_id" : 2019, "title" : "Seven Samurai (The Magnificent Seven) (Shichinin no samurai) (1954)", "averageRating" : 4.560509554140127, "ratingAmount" : 628 }`
 
@@ -165,6 +277,8 @@ db.movies.aggregate([
   }
 ]);
 ```
+
+<div style="page-break-after: always;"></div>
 
 7. Ergebnis: `{ "count" : 401 }`
 
