@@ -1,23 +1,70 @@
-#!/bin/env python
+#!/usr/bin/python3
 
-from couchbase.cluster import Cluster
-from couchbase.cluster import PasswordAuthenticator
-from couchbase.n1ql import N1QLQuery
+import numpy as np
+import matplotlib.pyplot as plt
+
+####
+# Couchbase
+####
+
+import pymongo
+
 
 # login
 
-cluster = Cluster('couchbase://silverhill.fbi.h-da.de')
-authenticator = PasswordAuthenticator('prak21', 'prak21')
-cluster.authenticate(authenticator)
-cb = cluster.open_bucket('prak21')
+client = pymongo.MongoClient(
+    "mongodb://faircastle.fbi.h-da.de",
+    username='prak21',
+    password='prak21',
+    authSource='prak21'
+)
 
-# query
 
-# simple commands
-# cb.n1ql_query('CREATE PRIMARY INDEX ON bucket-name').execute()
+def idx_drop(db):
+  try:
+    db.movies.drop_index('idx_title')
+  except pymongo.errors.OperationFailure:
+    pass
+  try:
+    db.moviesref.drop_index('idx_title')
+  except pymongo.errors.OperationFailure:
+    pass
+  try:
+    db.moviesref.drop_index('idx_movieid')
+  except pymongo.errors.OperationFailure:
+    pass
+  try:
+    db.ratings.drop_index('idx_movieid')
+  except pymongo.errors.OperationFailure:
+    pass
 
-# selections
-q = N1QLQuery('SELECT * FROM prak21 where movieId < 100 limit 10;')
-result = cb.n1ql_query(q)
-for row in result:
-  print(row)
+
+def idx_create(db):
+  db.movies.create_index(
+      [('title', pymongo.TEXT)],
+      name='idx_title', default_language='english')
+  db.moviesref.create_index(
+      [('title', pymongo.TEXT)],
+      name='idx_title', default_language='english')
+  db.moviesref.create_index(
+      [('movieId', pymongo.ASCENDING)],
+      name='idx_movieid')
+  db.ratings.create_index(
+      [('movieId', pymongo.ASCENDING)],
+      name='idx_movieid')
+
+
+with client:
+  db = client.prak21
+  col = db.movies
+  q = {"_id": 6365}
+  qres = col.find(q, {"ratings": 1}).explain()
+  print(qres["operationTime"])
+  for x in qres:
+    print(x)
+
+# with client:
+#   db = client.prak21
+#   col = db.movies
+#   idx_drop(db)
+#   idx_create(db)
