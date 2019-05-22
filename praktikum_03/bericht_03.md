@@ -126,8 +126,9 @@ Analog zu Couchbase wieder ein Script (Anhang 2), welches uns folgende Ergebniss
 ![image](res/fig02.png)
 
 Wir stellen zuerst fest, dass MongoDB deutlich schneller als Couchbase ist und, dass der Standard Optimizer von MongoDB auch sehr gut arbeitet.
-Die Queries sind so schnell, dass als `executionTimeMillis` 0ms ausgegeben werden. Wir waren deshalb verwirrt, haben die Daten überprüft, aber an sich stimmt alles. Dies macht auch Sinn, da MongoDB standardgemäß einen Index auf `_id` hat und deswegen für eine Suche mittels `_id` die nötige Rechenzeit unmessbar gering ist.
+Die Queries sind so schnell, dass als `executionTimeMillis` 0ms ausgegeben werden. Bei den ersten Versuchen am Wochenende waren die Zeiten im 100er ms Bereich. Wir waren deshalb verwirrt, haben die Daten überprüft, aber an sich stimmt alles. Dies macht auch Sinn, da MongoDB standardgemäß einen Index auf `_id` hat und deswegen für eine Suche mittels `_id` die nötige Rechenzeit unmessbar gering ist.
 Legt man zusätzlich einen Text Index auf `title` an, so wird auch Q1 in den unmessbaren Bereich beschleunigt.
+Wir schätzen, dass am Wochenende mehr Last auf dem Server war und es deshalb zur Abweichung kam.
 
 <div style="page-break-after: always;"></div>
 
