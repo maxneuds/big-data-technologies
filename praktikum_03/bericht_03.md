@@ -20,6 +20,8 @@ insert into public.user values (generate_series(1,1000000));
 \copy public.rating FROM '/pgpool/movielens/adjusted/1m/ratings.dat' with (format csv, delimiter ';');
 ```
 
+<div style="page-break-after: always;"></div>
+
 ### MongoDB
 
 Wir loggen uns in [faircastle](faircastle.fbi.h-da.de) und öffnen die Mongo Shell.
@@ -100,12 +102,13 @@ drop index prak21.movieIds;
 drop index prak21.titles;
 ```
 
-Wir haben ein Python Script gebaut (Anhang 1), das die Queries (Hier `Q1`, `Q2`, `Q3`) 5 mal ausführt, die Zeiten sammelt, Mittelwerte und Standardabweichung berechnet und das einmal ohne und einmal mit Index. Anschließend werden die Mittelwerte gegeneinander als Barchart geplottet. Die Zeiten sind in Sekunden.
+Wir haben ein Python Script gebaut (Anhang 1), das die Queries (Hier `Q1`, `Q2`, `Q3`) 5 mal ausführt, die Zeiten sammelt (aus den `ExecutionStats`), Mittelwerte und Standardabweichung berechnet und das einmal ohne und einmal mit Index. Anschließend werden die Mittelwerte gegeneinander als Barchart geplottet und die Standardabweichung als schwarze Linie am Barende ergänzt. Die Zeiten sind in Millisekunden.
+Wir hatten erst andere Zeiten und versucht uns diese zu erklären, aber diese stellten sich als inkorrekt heraus. Ursache war, dass beim Versuch einen Index über die API zu erstellen jede Query innerhalb von 75 Sekunden terminiert wird. Der Index wurde dann zwar angelegt, nur nicht vollständig, weshalb dieser im Bucket status auch gelistet wurde.
 
 ![image](res/fig01.png)
 
-Man sieht, dass ein Index für die erste Query nicht unbedingt besser macht. Die Standardabweichung steigt, der Mittelwert auch. Dies macht Sinn, da die Query nach Substrings in Namen sucht und dafür alles durchlaufen muss. Es kann sein, dass der simpel gewählte Index schlechter ist als das, was Couchbase standardgemäß im Hintergrund macht, was zu den schlechteren Zeiten führt.
-Für die anderen beiden Queries spart man etwas Zeit, da schneller nach `movieId` gesucht werden kann, aber nicht viel, da trotzdem noch sämtliche ratings durchlaufen werden müssen.
+Man sieht, dass ein Index zu einer deutlichen Verbesserung bei allen 3 Queries führt.
+Man sieht auch, dass Couchbase grundsätzlich alles durchsucht anhand der Tatsache, dass die Initialqueries alle etwa gleich schnell sind, aber mit Index die Fulltext-Search deutlich länger benötigt als reine Zugriffe auf Ids mittels Index.
 
 <div style="page-break-after: always;"></div>
 
@@ -156,12 +159,47 @@ mongoimport \
 --file /mnt/datasets/Movielens/JSONref/20m/ratings.json
 ```
 
+Und wir benutzen folgende Queries.
+
+```javascript
+db.moviesref.find({title: { $regex: "Matrix" }}, { title: 1 });
+
+db.ratings.find({ movieId: 6365 });
+
+db.moviesref.aggregate([{
+  $match: {
+    movieId: 6365
+  }
+},{
+  $lookup: {
+    from: "ratings",
+    localField: "movieId",
+    foreignField: "movieId",
+    as: "ratings"
+  }
+},{
+  $project: {
+    title: true,
+    ratings: true
+  }
+}]);
+```
+
+<div style="page-break-after: always;"></div>
+
 Anschließend gehen wir wieder größtenteils analog vor. Es ist aber eine Anpassung nötig, da `aggregate` keine `executionStats` unterstützt und zwar wird die Zeit dann in Python mittels `time` als Differenz in Millisekunden gemessen.
 
 ![image](res/fig03.png)
 
-Für Q1 ändert sich in Vergleich zu Embedded praktisch nichts, folglich das Ergebnis. Anders für Ratings und die Aggregation mit Ratings. Hier hat MongoDB per Standard kein Index, auf dem dieser Arbeiten kann, wodurch die Zeiten ähnlich der von Couchbase sind.
-Ein Index beschleunigt die Queries dann aber deutlich.
+Für Q1 ändert sich in Vergleich zu Embedded praktisch nichts, folglich das Ergebnis. Anders für Ratings und die Aggregation mit Ratings. Hier hat MongoDB per Standard kein Index, auf dem dieser Arbeiten kann, wodurch die Zeiten ähnlich der von Couchbase sind. Ein Index beschleunigt die Queries dann aber deutlich.
+
+Da die Filme und ihre Titel bei beiden Modellierungsansätzen gleich aussehen gibt es keine Unterschiede in der Betrachtung der ersten Query.
+Bei der zweiten Query ist der hauptsächliche Unterschied, dass automatische Indizes nur auf `_id` erstellt werden, weswegen die optimierungslose Betrachtung in Aufgabe 1 bereits sehr schnell war. Diesen Index müssen wir erst noch auf `movieId` erstellen.
+Das gleiche Problem existiert in der dritten Query. Zusätzlich muss dort, aufgrund der referentiellen Modellierung, noch ein Join durchgeführt werden, welcher die Performance und die Anfragenkomplexität negativ beeinflusst.
+
+Somit sollte eine embedded Modellierung vermutlich sinnvoller sein, falls häufig eine Beziehung zwischen Movies und Ratings besteht, während dies negative Auswirkung hätte wenn man Ratings pro User betrachtet.
+Falls also beide Betrachtungsweisen ähnlich oft geschehen könnte es sinnvoller sein die referentielle Modellierung zu verwenden. Alternativ könnte man natürlich die Ratings auch Embeddedd in User-Dokumente speichern, als dritte Option, falls das die Betrachtungsweise ist, die am häufigsten nützlich ist.
+
 
 <div style="page-break-after: always;"></div>
 
@@ -177,6 +215,7 @@ import matplotlib.pyplot as plt
 # Couchbase
 ####
 
+import couchbase
 from couchbase.cluster import Cluster
 from couchbase.cluster import PasswordAuthenticator
 from couchbase.n1ql import N1QLQuery
@@ -187,26 +226,34 @@ cluster = Cluster('couchbase://silverhill.fbi.h-da.de')
 authenticator = PasswordAuthenticator('prak21', 'prak21')
 cluster.authenticate(authenticator)
 cb = cluster.open_bucket('prak21')
+cb.n1ql_timeout = 3600
 
 # analyze functions
 
 
 def cb_index_create():
-  q1 = N1QLQuery('create index movieIds on prak21(movieId);')
-  q2 = N1QLQuery('create index titles on prak21(title);')
-  cb.n1ql_query(q1)
-  cb.n1ql_query(q2)
+  q1 = 'create index movieIds on prak21(movieId);'
+  q2 = 'create index titles on prak21(title);'
+  query_result(q1)
+  query_result(q2)
 
 
 def cb_index_drop():
   q1 = N1QLQuery('drop index prak21.movieIds;')
   q2 = N1QLQuery('drop index prak21.titles;')
-  cb.n1ql_query(q1)
-  cb.n1ql_query(q2)
+  try:
+    cb.n1ql_query(q1).execute()
+  except couchbase.exceptions.HTTPError:
+    pass
+  try:
+    cb.n1ql_query(q2).execute()
+  except couchbase.exceptions.HTTPError:
+    pass
 
 
 def query_result(string_query):
   q = N1QLQuery(string_query)
+  q.timeout = 3600
   qres = cb.n1ql_query(q)
   for row in qres:
     print(row)
@@ -215,14 +262,20 @@ def query_result(string_query):
 def query_time(string_query, repetitions):
   times = []
   q = N1QLQuery(string_query)
-  for _ in range(4):
-    qres = cb.n1ql_query(q)
+  q.timeout = 3600
+  for _ in range(repetitions):
+    qres = cb.n1ql_query(q).execute()
     time = qres.metrics['executionTime']
-    # cut the 's' from 'x.xxxxxs'
-    times.append(round(float(time[:-1]), 2))
+    # extract time we get times like 'x.xxs' or 'x.xxms'
+    # s is seconds, ms is milliseconds
+    format_letter = time[-2]
+    if format_letter == 'm':
+      times.append(round(float(time[:-2]), 2))
+    else:
+      times.append(round(float(time[:-1]) * 1000, 2))
   times = np.array(times)
-  time_avg = np.mean(times)
-  time_std = np.std(times)
+  time_avg = np.round(np.mean(times), 0)
+  time_std = np.round(np.std(times), 0)
   return(time_avg, time_std)
 
 ####
@@ -247,11 +300,6 @@ t5, std5 = query_time(q2, n)
 t6, std6 = query_time(q3, n)
 times_idx = np.array([t4, t5, t6])
 std_idx = np.array([std4, std5, std6])
-# expected outputs:
-# times_noidx = np.array([9.4425, 9.2825, 9.36])
-# std_noidx = np.array([0.10231691, 0.06299802, 0.12668859])
-# times_idx = np.array([9.685, 9.235, 9.335])
-# std_idx = np.array([0.78014422, 0.03570714, 0.10136567])
 
 # visualize
 ind = np.arange(len(times_noidx))  # the x locations for the groups
@@ -263,17 +311,36 @@ rects1 = ax.bar(ind - width/2, times_noidx, width,
 rects2 = ax.bar(ind + width/2, times_idx, width, yerr=std_idx, label='Index')
 
 # Add some text for labels, title and custom x-axis tick labels, etc.
-ax.set_ylabel('Times')
-ax.set_title('Times with and without index')
+ax.set_ylabel('times in ms')
+ax.set_title('times with and without index in ms')
 ax.set_xticks(ind)
 ax.set_xticklabels(('Q1', 'Q2', 'Q3'))
 ax.legend()
+
+
+def autolabel(rects, xpos='center'):
+  ha = {'center': 'center', 'right': 'left', 'left': 'right'}
+  offset = {'center': 0, 'right': 1, 'left': -1}
+
+  for rect in rects:
+    height = rect.get_height()
+    ax.annotate('{}'.format(height),
+                xy=(rect.get_x() + rect.get_width() / 2, height),
+                xytext=(offset[xpos]*3, 3),  # use 3 points offset
+                textcoords="offset points",  # in both directions
+                ha=ha[xpos], va='bottom')
+
+
+autolabel(rects1, "left")
+autolabel(rects2, "right")
 
 fig.tight_layout()
 
 plt.show(block=True)
 
 ```
+
+<div style="page-break-after: always;"></div>
 
 ## Anhang 2
 
@@ -359,7 +426,7 @@ def query_time(collection, dict_query, dict_select, repetitions):
       time = stats["executionTimeMillis"]
       times.append(time)
   times = np.array(times)
-  time_avg = np.mean(times)
+  time_avg = np.round(np.mean(times), 0)
   time_std = np.std(times)
   return(time_avg, time_std)
 
@@ -383,12 +450,16 @@ t2, std2 = query_time('movies', q2, s2, n)
 t3, std3 = query_time('movies', q3, s3, n)
 times_noidx = np.array([t1, t2, t3])
 std_noidx = np.array([std1, std2, std3])
+print(times_noidx)
+print(std_noidx)
 mongo_idx_create()
 t4, std4 = query_time('movies', q12, s1, n)
 t5, std5 = query_time('movies', q2, s2, n)
 t6, std6 = query_time('movies', q3, s3, n)
 times_idx = np.array([t4, t5, t6])
 std_idx = np.array([std4, std5, std6])
+print(times_idx)
+print(std_idx)
 
 # visualize
 ind = np.arange(len(times_noidx))  # the x locations for the groups
@@ -400,17 +471,36 @@ rects1 = ax.bar(ind - width/2, times_noidx, width,
 rects2 = ax.bar(ind + width/2, times_idx, width, yerr=std_idx, label='Index')
 
 # Add some text for labels, title and custom x-axis tick labels, etc.
-ax.set_ylabel('Times')
-ax.set_title('Times with and without index')
+ax.set_ylabel('times in ms')
+ax.set_title('times with and without index in ms')
 ax.set_xticks(ind)
 ax.set_xticklabels(('Q1', 'Q2', 'Q3'))
 ax.legend()
+
+
+def autolabel(rects, xpos='center'):
+  ha = {'center': 'center', 'right': 'left', 'left': 'right'}
+  offset = {'center': 0, 'right': 1, 'left': -1}
+
+  for rect in rects:
+    height = rect.get_height()
+    ax.annotate('{}'.format(height),
+                xy=(rect.get_x() + rect.get_width() / 2, height),
+                xytext=(offset[xpos]*3, 3),  # use 3 points offset
+                textcoords="offset points",  # in both directions
+                ha=ha[xpos], va='bottom')
+
+
+autolabel(rects1, "left")
+autolabel(rects2, "right")
 
 fig.tight_layout()
 
 plt.show(block=True)
 
 ```
+
+<div style="page-break-after: always;"></div>
 
 ## Anhang 3
 
@@ -516,7 +606,7 @@ def queryagg_time(collection, pipeline, repetitions):
       t = int(round(now() * 1000)) - t
       times.append(t)
   times = np.array(times)
-  time_avg = np.mean(times)
+  time_avg = np.round(np.mean(times), 0)
   time_std = np.std(times)
   return(time_avg, time_std)
 
@@ -559,11 +649,28 @@ rects1 = ax.bar(ind - width/2, times_noidx, width,
 rects2 = ax.bar(ind + width/2, times_idx, width, yerr=std_idx, label='Index')
 
 # Add some text for labels, title and custom x-axis tick labels, etc.
-ax.set_ylabel('Times')
-ax.set_title('Times with and without index')
+ax.set_ylabel('times in ms')
+ax.set_title('times with and without index in ms')
 ax.set_xticks(ind)
 ax.set_xticklabels(('Q1', 'Q2', 'Q3'))
 ax.legend()
+
+
+def autolabel(rects, xpos='center'):
+  ha = {'center': 'center', 'right': 'left', 'left': 'right'}
+  offset = {'center': 0, 'right': 1, 'left': -1}
+
+  for rect in rects:
+    height = rect.get_height()
+    ax.annotate('{}'.format(height),
+                xy=(rect.get_x() + rect.get_width() / 2, height),
+                xytext=(offset[xpos]*3, 3),  # use 3 points offset
+                textcoords="offset points",  # in both directions
+                ha=ha[xpos], va='bottom')
+
+
+autolabel(rects1, "left")
+autolabel(rects2, "right")
 
 fig.tight_layout()
 

@@ -99,7 +99,7 @@ def queryagg_time(collection, pipeline, repetitions):
       t = int(round(now() * 1000)) - t
       times.append(t)
   times = np.array(times)
-  time_avg = np.mean(times)
+  time_avg = np.round(np.mean(times), 0)
   time_std = np.std(times)
   return(time_avg, time_std)
 
@@ -142,11 +142,28 @@ rects1 = ax.bar(ind - width/2, times_noidx, width,
 rects2 = ax.bar(ind + width/2, times_idx, width, yerr=std_idx, label='Index')
 
 # Add some text for labels, title and custom x-axis tick labels, etc.
-ax.set_ylabel('Times')
-ax.set_title('Times with and without index')
+ax.set_ylabel('times in ms')
+ax.set_title('times with and without index in ms')
 ax.set_xticks(ind)
 ax.set_xticklabels(('Q1', 'Q2', 'Q3'))
 ax.legend()
+
+
+def autolabel(rects, xpos='center'):
+  ha = {'center': 'center', 'right': 'left', 'left': 'right'}
+  offset = {'center': 0, 'right': 1, 'left': -1}
+
+  for rect in rects:
+    height = rect.get_height()
+    ax.annotate('{}'.format(height),
+                xy=(rect.get_x() + rect.get_width() / 2, height),
+                xytext=(offset[xpos]*3, 3),  # use 3 points offset
+                textcoords="offset points",  # in both directions
+                ha=ha[xpos], va='bottom')
+
+
+autolabel(rects1, "left")
+autolabel(rects2, "right")
 
 fig.tight_layout()
 

@@ -7,64 +7,43 @@ import matplotlib.pyplot as plt
 # Couchbase
 ####
 
-import pymongo
-
+from couchbase.cluster import Cluster
+from couchbase.cluster import PasswordAuthenticator
+from couchbase.n1ql import N1QLQuery
 
 # login
 
-client = pymongo.MongoClient(
-    "mongodb://faircastle.fbi.h-da.de",
-    username='prak21',
-    password='prak21',
-    authSource='prak21'
-)
+cluster = Cluster('couchbase://silverhill.fbi.h-da.de')
+authenticator = PasswordAuthenticator('prak21', 'prak21')
+cluster.authenticate(authenticator)
+cb = cluster.open_bucket('prak21')
+cb.n1ql_timeout = 3600
+
+# analyze functions
 
 
-def idx_drop(db):
-  try:
-    db.movies.drop_index('idx_title')
-  except pymongo.errors.OperationFailure:
-    pass
-  try:
-    db.moviesref.drop_index('idx_title')
-  except pymongo.errors.OperationFailure:
-    pass
-  try:
-    db.moviesref.drop_index('idx_movieid')
-  except pymongo.errors.OperationFailure:
-    pass
-  try:
-    db.ratings.drop_index('idx_movieid')
-  except pymongo.errors.OperationFailure:
-    pass
+def cb_index_create():
+  q1 = N1QLQuery('create index movieIds on prak21(movieId);')
+  q2 = N1QLQuery('create index titles on prak21(title);')
+  cb.n1ql_query(q1)
+  cb.n1ql_query(q2)
 
 
-def idx_create(db):
-  db.movies.create_index(
-      [('title', pymongo.TEXT)],
-      name='idx_title', default_language='english')
-  db.moviesref.create_index(
-      [('title', pymongo.TEXT)],
-      name='idx_title', default_language='english')
-  db.moviesref.create_index(
-      [('movieId', pymongo.ASCENDING)],
-      name='idx_movieid')
-  db.ratings.create_index(
-      [('movieId', pymongo.ASCENDING)],
-      name='idx_movieid')
+def cb_index_drop():
+  q1 = N1QLQuery('drop index prak21.movieIds;')
+  q2 = N1QLQuery('drop index prak21.titles;')
+  cb.n1ql_query(q1)
+  cb.n1ql_query(q2)
 
 
-with client:
-  db = client.prak21
-  col = db.movies
-  q = {"_id": 6365}
-  qres = col.find(q, {"ratings": 1}).explain()
-  print(qres["operationTime"])
-  for x in qres:
-    print(x)
+def query_result(string_query):
+  q = N1QLQuery(string_query)
+  q.timeout = 3600
+  qres = cb.n1ql_query(q)
+  for row in qres:
+    print(row)
 
-# with client:
-#   db = client.prak21
-#   col = db.movies
-#   idx_drop(db)
-#   idx_create(db)
+
+# query_result('select * from prak21 limit 100')
+query_result('drop index prak21.movieIds;')
+# query_result('create index movieIds on prak21(movieId);')
