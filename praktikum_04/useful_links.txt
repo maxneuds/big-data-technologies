@@ -1,0 +1,22 @@
+Python MapReduce
+https://wiki.h-da.de/fbi/bigdata/index.php/Running_Python-MapReduce-Jobs_on_Hadoop_with_%27%27mrjob%27%27
+
+Java MapReduce
+https://lernen.h-da.de/pluginfile.php/386988/mod_resource/content/3/RatingCounter.java
+
+Java MapReduce ToolInterface
+https://hadoopi.wordpress.com/2013/06/05/hadoop-implementing-the-tool-interface-for-mapreduce-driver/
+
+Hadoop-Beispiel
+https://wiki.h-da.de/fbi/bigdata/index.php/Hadoop-Beispiel
+
+Großes Uff:
+Grundsätzliche Arbeit wie im Wiki beschrieben
+https://wiki.h-da.de/fbi/bigdata/index.php/Hadoop-Beispiel
+Wichtig: verwendete Libraries müssen im HADOOP_CLASSPATH ergänzt werden:
+
+export HADOOP_CLASSPATH=${JAVA_HOME}/lib/tools.jar:/mnt/datasets/libs/json-simple-1.1.1.jar
+
+Bei der Ausführung müssen ebenfalls die Libraries angegeben werden:
+
+hadoop jar RatingCounter.jar RatingCounter -libjars /mnt/datasets/libs/json-simple-1.1.1.jar /user/<username>/<input> /user/<username>/<output>
