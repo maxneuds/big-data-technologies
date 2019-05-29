@@ -1,3 +1,6 @@
+hda Hadoop
+http://lannisport.fbi.h-da.de:50070/explorer.html#/
+
 Python MapReduce
 https://wiki.h-da.de/fbi/bigdata/index.php/Running_Python-MapReduce-Jobs_on_Hadoop_with_%27%27mrjob%27%27
 
