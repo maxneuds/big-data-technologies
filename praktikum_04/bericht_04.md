@@ -8,6 +8,21 @@ Gruppe 21: Maximilian Neudert, Kai Pehns
 
 [Hadoop](https://wiki.h-da.de/fbi/bigdata/index.php/Installierte_Software#Hadoop)
 
+Wir haben uns an [dieses Beispiel](https://wiki.h-da.de/fbi/bigdata/index.php/Hadoop-Beispiel) gehalten.
+Um die richtigen Umgebungsparameter dauerhaft zu haben bietet es sich an den angegebenen Befehl beim Verbinden einfach auszuführen.
+
+```bash
+echo "source /etc/skel/.bashrc" > ~/.bashrc
+```
+
+Ansonsten lässt sich das Hardoop Filesystem mittels
+
+```bash
+hadoop fs -<>
+```
+
+mit `<>` gängiger Unix Filesystem Befehl intuitiv bedienen.
+
 ## Aufgabe 2
 
 Zuerst verbinden wir uns auf den Cluster
