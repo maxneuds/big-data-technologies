@@ -1,0 +1,46 @@
+Abfrage 1:
+	1m: 14575ms
+	10m: 28358ms
+	20m: 39325ms
+	
+	Map: Zählt alle Ratings pro Movie.
+	Reduce: Addiert alle Resultate von Map.
+
+Abfrage 2:
+	1m: 12337ms
+	10m: 13417ms
+	20m: 15461ms
+
+	Map: Schaut, ob ein gegebener Film ein Rating von User 10 hat. Wenn ja, wird der Titel an Reduce weitergegeben.
+	Reduce: Formatiert alle übrigen Titel in einen Output-String.
+
+Abfrage 3:
+	1m: 17452ms
+	10m: 31570ms
+	20m: 42186ms
+	
+	Map: Bildet Key-Value Paare im Format "userId, 1" anhand der gegebenen Ratings pro Film.
+	Reduce: Addiert alle Values pro UserId.
+
+Abfrage 4:
+	1m: 12234ms
+	10m: 16836ms
+	20m: 17637ms
+	
+	Map: Zählt und addiert Ratings pro Film. Wenn das durchschnittliche Rating größer gleich 4 ist, wird der Titel an Reduce weitergegeben.
+	Reduce: Formatiert alle übrigen Titel in einen Output-String.
+	
+	
+Workflow:
+
+	Compile:
+	hadoop com.sun.tools.javac.Main ~/MovieRating.java
+	
+	Jar:
+	jar cf mr.jar MovieRating*.class                                                             
+
+	Delete output:
+	hadoop fs -rm -r /user/istkapehn/praktikum4/output 
+
+	Execute:
+	hadoop jar mr.jar MovieRating -libjars /mnt/datasets/libs/json-simple-1.1.1.jar /user/istkapehn/praktikum4/movies_20m.json /user/istkapehn/praktikum4/output
