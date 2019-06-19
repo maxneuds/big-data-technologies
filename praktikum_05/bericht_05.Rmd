@@ -1,0 +1,151 @@
+---
+output: pdf_document
+header-includes: 
+- \usepackage[utf8]{inputenc}
+- \usepackage[T1]{fontenc}
+- \usepackage[ngerman]{babel}
+- \usepackage{amsmath,amssymb,amsthm}
+- \usepackage{dsfont}
+- \usepackage{listings}
+- \usepackage{enumitem}
+- \usepackage{floatrow}
+- \usepackage{fancyhdr}
+- \pagestyle{fancy}
+- '\fancyhead[C,C]{Gruppe 21: Kai Pehns, Maximilian Neudert}'
+- \fancyhead[L]{}
+- \fancyhead[R]{}
+- \fancyfoot[C,C]{\thepage}
+- \renewcommand{\footrulewidth}{0.4pt}
+- \newcommand{\argmin}{\operatorname{arg}\min}
+- \newcommand{\R}{\mathds{R}}
+---
+
+<style type="text/css">
+body{
+  font-size: 12px;
+}
+h1 {
+  font-size: 18px;
+}
+h1 {
+  font-size: 14px;
+}
+h1 {
+  font-size: 12px;
+}
+</style>
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(error=TRUE,        # Keep compiling upon error
+                      collapse=TRUE,     # collapse by default
+                      echo=TRUE,         # echo code by default
+                      comment = "#>",    # change comment character
+                      fig.width = 10,     # set figure width
+                      out.width = "100%", # set width of displayed images
+                      warning=TRUE,      # show R warnings
+                      message=FALSE)     # show R messages
+```
+
+<!---** Hochschule Darmstadt | Studiengang Data Science | Sommersemester 2019 **--->
+
+```{r, echo=FALSE}
+set.seed(42)
+usepackage = function(p) 
+{
+  if (!is.element(p, installed.packages()[,1]))
+    install.packages(p, dep = TRUE)
+  require(p, character.only = TRUE)
+}
+usepackage('ggplot2')
+usepackage('tidyr')
+usepackage('gridExtra')
+```
+
+# Praktikum 5
+
+Wir haben 40GB zufälligen Text erzeugt und anschließend die Anzahl an Wörtern mit Hadoop mittels WordCount gezählt und die Zeiten von Anfang der Bearbeitung der Abfrage (MapReduce Start) bis Ende der Bearbeitung und erhalt des Ergebnisses (MapReduce Ende) gemessen und gespeichert.
+Die Zeiten haben wir in Sekunden gemessen und folgende Ergebnisse erhalten.
+
+```{r, echo=FALSE}
+data = read.csv('res/data.csv', header = TRUE, sep = ';')
+df = data.frame(data)
+df$count_servers = as.factor(df$count_servers)
+gg2 = ggplot(
+  data = subset(df, count_servers == 2),
+  mapping = aes(
+    x = count_servers,
+    y = time
+  )
+)
+gg2 = gg2 + geom_boxplot(fill = 'red')
+gg2 = gg2 + xlab('2 Server') + ylab('Zeit in Sekunden')
+gg4 = ggplot(
+  data = subset(df, count_servers == 4),
+  mapping = aes(
+    x = count_servers,
+    y = time
+  )
+)
+gg4 = gg4 + geom_boxplot(fill = 'blue')
+gg4 = gg4 + xlab('4 Server') + ylab('Zeit in Sekunden')
+gg8 = ggplot(
+  data = subset(df, count_servers == 8),
+  mapping = aes(
+    x = count_servers,
+    y = time
+  )
+)
+gg8 = gg8 + geom_boxplot(fill = 'green')
+gg8 = gg8 + xlab('8 Server') + ylab('Zeit in Sekunden')
+grid.arrange(gg2, gg4, gg8, ncol=3, nrow = 1)
+```
+
+In den Boxplots können wir die genaue Verteilung der gemessenen Zeiten in Abhängigkeit der Serveranzahl sehen. Wie wir sehen können führte eine Erhöhung der Serveranzahl zu einer signifikanten Reduktion der Rechenzeit. Dies analysieren wir genauer.
+
+```{r, echo=FALSE}
+m2 = round(mean(subset(df, count_servers == 2)$time), 0)
+m4 = round(mean(subset(df, count_servers == 4)$time), 0)
+m8 = round(mean(subset(df, count_servers == 8)$time), 0)
+p2 = 100
+p4 = round(m4 / m2 * 100, 2)
+p8 = round(m8 / m4 * 100, 2)
+m = c(m2, m4, m8)
+p = c(p2, p4, p8)
+s = c(2, 4, 8)
+tdf = data.frame(count_servers = s, time = m, percent = p)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+ggt = ggplot(
+  data = tdf,
+  mapping = aes(
+    x = count_servers,
+    y = time
+  )
+)
+ggt = ggt + geom_smooth(formula = 'y ~ x', method = 'glm')
+ggt = ggt + scale_x_continuous(breaks=c(2,4,8))
+ggt = ggt + xlab('Serveranzahl') + ylab('Zeit in Sekunden')
+ggp = ggplot(
+  data = tdf,
+  mapping = aes(
+    x = count_servers,
+    y = percent
+  )
+)
+ggp = ggp + geom_smooth(formula = 'y ~ x', method = 'loess')
+ggp = ggp + scale_x_continuous(breaks=c(2,4,8))
+ggp = ggp + xlab('Serveranzahl') + ylab('Prozent der Rechenzeit nach Verdopplung der Serveranzahl')
+grid.arrange(ggt, ggp, ncol=2, nrow = 1)
+```
+
+In der linken Grafik sehen wir die Rechenzeit in Abhängigkeit der Serveranzahl. Wie wir sehen können gibt es einen signifikaten sinkenden Trend.
+In der rechten Grafik sehen wir die Prozentuale Reduktion der Serverzeit nach jeweiliger Verdopplung der Serveranzahl. Wie wir sehen können Bedarf es genauer Planung, wie viel Zeitgewinn und was für ein Kostenleistungsverhältnis man erreichen möchte. Bei Verdopplung von 2 auf 4 Server hat sich die Rechenzeit fast halbiert, während die Rechenzeit nach Verdopplung von 4 auf 8 nur um etwa 25% gesenkt wurde.
+Je nach Anwendung wäre es also sinnvoll noch zu messen ab welcher Serveranzahl die Performancesteigerung nicht mehr mit den Kosten rechtfertigbar ist.
+
+Alles in allem können wir somit belegen, dass die Rechenzeit definitiv mit Steigender Serveranzahl und horizontaler Saklierung verbessert werden kann ohne, dass die Leistung der Server selbst gesteigert werden muss. Da wir dynamisch skalieren können bietet uns dies somit den besonderen Vorteil, dass wir solange gleiche Maschinen dazu kaufen können, bis die gewünschte Performance erreicht hat. Da die Maschine als Klone erstellt werden können sparen wir sowohl Konfigurationsaufwand als auch deutliche Einsparung bei den Maschinenkosten, da doppelte Leitung eines Geräts im Regelfall ein Vielfaches mehr kostet während bei mehreren neuen Maschinen die Kosten linear skalieren und wir eventuell noch Mengenrabatt aushandeln können.
+
+Besonders durch die Skalierbarkeit und den einfachen und Austauschbaren Performancegewinn durch horizontale Erweiterung sprechen wir eine klare Empfehlung für eben diese mittels Hadoop aus.
+
+
+
